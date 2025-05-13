@@ -21,11 +21,8 @@ else:
 if not os.getenv("TAVILY_API_KEY"):
     logger.warning("TAVILY_API_KEY environment variable is not set.")
 
-if not os.getenv("OPENAI_API_KEY"):
-    logger.warning("OPENAI_API_KEY environment variable is not set.")
-
-if not os.getenv("GEMINI_API_KEY"):
-    logger.warning("GEMINI_API_KEY environment variable is not set.")
+if not os.getenv("OPENROUTER_API_KEY"):
+    logger.warning("OPENROUTER_API_KEY environment variable is not set.")
 
 from .graph import Graph
 

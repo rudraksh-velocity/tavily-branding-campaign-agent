@@ -109,18 +109,15 @@ if [ "$setup_env" = true ]; then
     echo -e "\nPlease enter your API keys:"
     echo -n "Tavily API Key: "
     read -r tavily_key
-    echo -n "Google Gemini API Key: "
-    read -r gemini_key
-    echo -n "OpenAI API Key: "
-    read -r openai_key
+    echo -n "OpenRouter API Key: "
+    read -r openrouter_key
     echo -n "MongoDB URI (optional - press enter to skip): "
     read -r mongodb_uri
 
     # Create .env file
     cat > .env << EOL
 TAVILY_API_KEY=$tavily_key
-GEMINI_API_KEY=$gemini_key
-OPENAI_API_KEY=$openai_key
+OPENROUTER_API_KEY=$openrouter_key
 EOL
 
     # Add MongoDB URI if provided
@@ -194,4 +191,4 @@ fi
 echo -e "\n${BOLD}Need help?${NC}"
 echo "- Documentation: README.md"
 echo "- Issues: https://github.com/pogjester/tavily-company-research/issues"
-echo -e "\n${GREEN}Happy researching! 🚀${NC}" 
+echo -e "\n${GREEN}Happy researching! 🚀${NC}"

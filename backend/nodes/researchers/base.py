@@ -1,25 +1,26 @@
 import os
 from datetime import datetime
-from openai import AsyncOpenAI
 from tavily import AsyncTavilyClient
 from ...classes import ResearchState
 from typing import Dict, Any, List
 import logging
 from ...utils.references import clean_title
 import asyncio
+from ...utils.openrouter_client import OpenRouterClient
 
 logger = logging.getLogger(__name__)
 
 class BaseResearcher:
     def __init__(self):
         tavily_key = os.getenv("TAVILY_API_KEY")
-        openai_key = os.getenv("OPENAI_API_KEY")
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
         
-        if not tavily_key or not openai_key:
+        if not tavily_key or not openrouter_key:
             raise ValueError("Missing API keys")
             
         self.tavily_client = AsyncTavilyClient(api_key=tavily_key)
-        self.openai_client = AsyncOpenAI(api_key=openai_key)
+        self.openrouter_client = OpenRouterClient(api_key=openrouter_key)
+        self.gpt4_mini_model_id = "openai/gpt-4o-mini"
         self.analyst_type = "base_researcher"  # Default type
 
     @property
@@ -43,8 +44,7 @@ class BaseResearcher:
         try:
             logger.info(f"Generating queries for {company} as {self.analyst_type}")
             
-            response = await self.openai_client.chat.completions.create(
-                model="gpt-4.1-mini",
+            response = await self.openrouter_client.generate_completion(
                 messages=[
                     {
                         "role": "system",
@@ -56,6 +56,7 @@ class BaseResearcher:
 {self._format_query_prompt(prompt, company, hq, current_year)}"""
                     }
                 ],
+                model=self.gpt4_mini_model_id,
                 temperature=0,
                 max_tokens=4096,
                 stream=True

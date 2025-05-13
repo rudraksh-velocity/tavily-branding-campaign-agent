@@ -1,9 +1,9 @@
-import google.generativeai as genai
 from typing import Dict, Any, Union, List
 import os
 import logging
 from ..classes import ResearchState
 import asyncio
+from ..utils.openrouter_client import OpenRouterClient
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +12,14 @@ class Briefing:
     
     def __init__(self) -> None:
         self.max_doc_length = 8000  # Maximum document content length
-        self.gemini_key = os.getenv("GEMINI_API_KEY")
-        if not self.gemini_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set")
+        self.openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not self.openrouter_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is not set")
         
-        # Configure Gemini
-        genai.configure(api_key=self.gemini_key)
-        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+        # Configure OpenRouter client
+        self.openrouter_client = OpenRouterClient(api_key=self.openrouter_key)
+        # Use Gemini model through OpenRouter
+        self.gemini_model_id = "google/gemini-flash-1.5"  # OpenRouter model ID for Gemini
 
     async def generate_category_briefing(
         self, docs: Union[Dict[str, Any], List[Dict[str, Any]]], 
@@ -179,7 +180,7 @@ Analyze the following documents and extract key information. Provide only the br
         
         try:
             logger.info("Sending prompt to LLM")
-            response = self.gemini_model.generate_content(prompt)
+            response = await self.openrouter_client.generate_content(prompt, model=self.gemini_model_id)
             content = response.text.strip()
             if not content:
                 logger.error(f"Empty response from LLM for {category} briefing")

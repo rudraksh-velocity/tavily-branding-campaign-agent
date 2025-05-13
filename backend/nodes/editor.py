@@ -1,6 +1,5 @@
 from langchain_core.messages import AIMessage
 from typing import Dict, Any
-from openai import AsyncOpenAI
 import os
 import logging
 
@@ -8,17 +7,21 @@ logger = logging.getLogger(__name__)
 
 from ..classes import ResearchState
 from ..utils.references import format_references_section
+from ..utils.openrouter_client import OpenRouterClient
 
 class Editor:
     """Compiles individual section briefings into a cohesive final report."""
     
     def __init__(self) -> None:
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        if not self.openai_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        self.openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not self.openrouter_key:
+            raise ValueError("OPENROUTER_API_KEY environment variable is not set")
         
-        # Configure OpenAI
-        self.openai_client = AsyncOpenAI(api_key=self.openai_key)
+        # Configure OpenRouter client
+        self.openrouter_client = OpenRouterClient(api_key=self.openrouter_key)
+        # OpenRouter model IDs for OpenAI models
+        self.gpt4_model_id = "openai/gpt-4o"
+        self.gpt4_mini_model_id = "openai/gpt-4o-mini"
         
         # Initialize context dictionary for use across methods
         self.context = {
@@ -248,8 +251,7 @@ Strictly enforce this EXACT document structure:
 Return the report in clean markdown format. No explanations or commentary."""
         
         try:
-            response = await self.openai_client.chat.completions.create(
-                model="gpt-4.1",
+            response = await self.openrouter_client.generate_completion(
                 messages=[
                     {
                         "role": "system",
@@ -260,6 +262,7 @@ Return the report in clean markdown format. No explanations or commentary."""
                         "content": prompt
                     }
                 ],
+                model=self.gpt4_model_id,
                 temperature=0,
                 stream=False
             )
@@ -330,8 +333,7 @@ Return the polished report in flawless markdown format. No explanation.
 Return the cleaned report in flawless markdown format. No explanations or commentary."""
         
         try:
-            response = await self.openai_client.chat.completions.create(
-                model="gpt-4.1-mini", 
+            response = await self.openrouter_client.generate_completion(
                 messages=[
                     {
                         "role": "system",
@@ -342,6 +344,7 @@ Return the cleaned report in flawless markdown format. No explanations or commen
                         "content": prompt
                     }
                 ],
+                model=self.gpt4_mini_model_id,
                 temperature=0,
                 stream=True
             )
