@@ -8,25 +8,26 @@ NC='\033[0m' # No Color
 
 # Version comparison function
 version_compare() {
-    echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'
+    IFS='.' read -r major minor patch <<< "$1"
+    printf "%03d%03d%03d\n" "$major" "$minor" "${patch:-0}"
 }
 
 echo -e "${BOLD}🚀 Welcome to the Agentic Company Researcher Setup!${NC}\n"
 
-# Check if Python 3.11+ is installed
+# Check if Python 3.10+ is installed
 echo -e "${BLUE}Checking Python version...${NC}"
 if command -v python3 >/dev/null 2>&1; then
-    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    if [ "$(version_compare "$python_version")" -ge "$(version_compare "3.11")" ]; then
+    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+    if [ "$(version_compare "$python_version")" -ge "$(version_compare "3.10.0")" ]; then
         echo -e "${GREEN}✓ Python $python_version is installed${NC}"
     else
-        echo "❌ Python 3.11 or higher is required. Current version: $python_version"
-        echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
+        echo "❌ Python 3.10 or higher is required. Current version: $python_version"
+        echo "Please install Python 3.10 or higher from https://www.python.org/downloads/"
         exit 1
     fi
 else
     echo "❌ Python 3 is not installed"
-    echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
+    echo "Please install Python 3.10 or higher from https://www.python.org/downloads/"
     exit 1
 fi
 
