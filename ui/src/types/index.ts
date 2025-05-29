@@ -53,15 +53,24 @@ export type ResearchState = {
 };
 
 export type GlassStyle = {
-  base: string;
+  container: string;
   card: string;
+  sidebar: string;
+  progressCard: string;
   input: string;
+  button: string;
+  header: string;
+  base: string;
 };
 
 export type AnimationStyle = {
   fadeIn: string;
-  writing: string;
-  colorTransition: string;
+  slideUp: string;
+  slideDown: string;
+  slideLeft: string;
+  slideRight: string;
+  scaleIn: string;
+  bounceIn: string;
 };
 
 export type ResearchStatusProps = {
@@ -73,4 +82,4 @@ export type ResearchStatusProps = {
   glassStyle: GlassStyle;
   loaderColor: string;
   statusRef: React.RefObject<HTMLDivElement>;
-}; 
+};

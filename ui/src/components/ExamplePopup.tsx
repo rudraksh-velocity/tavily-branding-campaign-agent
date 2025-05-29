@@ -1,49 +1,49 @@
 import React, { useState, useEffect, RefObject } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
-// Sample companies for examples
+// Sample brands for examples
 export const EXAMPLE_COMPANIES = [
   {
-    name: "Stripe",
-    url: "stripe.com",
-    hq: "San Francisco, CA",
-    industry: "Financial Technology"
+    name: "Nike",
+    url: "nike.com",
+    hq: "Beaverton, OR",
+    industry: "Sports & Lifestyle"
   },
   {
-    name: "Shopify",
-    url: "shopify.com",
-    hq: "Ottawa, Canada",
-    industry: "E-commerce"
+    name: "Jockey",
+    url: "jockey.com",
+    hq: "Kenosha, WI",
+    industry: "Apparel & Underwear"
   },
   {
-    name: "Notion",
-    url: "notion.so",
-    hq: "San Francisco, CA",
-    industry: "Productivity Software"
+    name: "Apple",
+    url: "apple.com",
+    hq: "Cupertino, CA",
+    industry: "Technology"
+  },
+  {
+    name: "Coca-Cola",
+    url: "coca-cola.com",
+    hq: "Atlanta, GA",
+    industry: "Beverages"
+  },
+  {
+    name: "McDonald's",
+    url: "mcdonalds.com",
+    hq: "Chicago, IL",
+    industry: "Fast Food"
+  },
+  {
+    name: "Starbucks",
+    url: "starbucks.com",
+    hq: "Seattle, WA",
+    industry: "Coffee & Lifestyle"
   },
   {
     name: "Tesla",
     url: "tesla.com",
     hq: "Austin, TX",
     industry: "Automotive & Energy"
-  },
-  {
-    name: "Airbnb",
-    url: "airbnb.com",
-    hq: "San Francisco, CA",
-    industry: "Travel & Hospitality"
-  },
-  {
-    name: "Slack",
-    url: "slack.com",
-    hq: "San Francisco, CA",
-    industry: "Business Communication"
-  },
-  {
-    name: "Spotify",
-    url: "spotify.com",
-    hq: "Stockholm, Sweden",
-    industry: "Music Streaming"
   }
 ];
 
@@ -119,4 +119,4 @@ const ExamplePopup: React.FC<ExamplePopupProps> = ({
   );
 };
 
-export default ExamplePopup; 
+export default ExamplePopup;

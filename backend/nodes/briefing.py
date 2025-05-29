@@ -21,30 +21,113 @@ class Briefing:
         # Use Gemini model through OpenRouter
         self.gemini_model_id = "google/gemini-flash-1.5"  # OpenRouter model ID for Gemini
 
-    async def generate_category_briefing(
-        self, docs: Union[Dict[str, Any], List[Dict[str, Any]]], 
-        category: str, context: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        company = context.get('company', 'Unknown')
-        industry = context.get('industry', 'Unknown')
-        hq_location = context.get('hq_location', 'Unknown')
-        logger.info(f"Generating {category} briefing for {company} using {len(docs)} documents")
+    def get_brand_dna_prompts(self, company: str, industry: str, hq_location: str) -> Dict[str, str]:
+        """Get Brand DNA specific prompts"""
+        return {
+            'company': f"""Create a comprehensive Brand DNA analysis for {company}.
+            
+Analyze both uploaded brand documents and external research to create:
 
-        # Send category start status
-        if websocket_manager := context.get('websocket_manager'):
-            if job_id := context.get('job_id'):
-                await websocket_manager.send_status_update(
-                    job_id=job_id,
-                    status="briefing_start",
-                    message=f"Generating {category} briefing",
-                    result={
-                        "step": "Briefing",
-                        "category": category,
-                        "total_docs": len(docs)
-                    }
-                )
+### Brand Foundation
+* Core brand values and principles
+* Mission and vision statements
+* Brand purpose and why the company exists
 
-        prompts = {
+### Brand Identity
+* Brand personality traits and characteristics
+* Brand voice and tone guidelines
+* Visual identity elements (colors, fonts, logos)
+
+### Brand Positioning
+* Unique value proposition
+* Target audience definition
+* Competitive differentiation
+
+### Brand Expression
+* Key messaging frameworks
+* Content themes and topics
+* Communication style and approach
+
+### Brand Culture
+* Internal brand adoption
+* Employee brand advocacy
+* Cultural alignment with brand values
+
+Focus on insights from uploaded brand documents when available.
+Each bullet must be specific and actionable.
+Never mention "no information found" or "no data available".
+Provide only the briefing. No explanations or commentary.""",
+
+            'industry': f"""Create a Brand Positioning Analysis for {company} in the {industry} industry.
+
+### Industry Brand Landscape
+* Key brand players and their positioning
+* Industry brand standards and expectations
+* Emerging brand trends in {industry}
+
+### Competitive Brand Analysis
+* Direct brand competitors and their strategies
+* Brand differentiation opportunities
+* Market gaps in brand positioning
+
+### Brand Opportunities
+* Untapped brand positioning opportunities
+* Industry-specific brand challenges to address
+* Potential brand partnership opportunities
+
+Focus on brand-specific insights rather than general market data.
+Each bullet must be specific and actionable.
+Never mention "no information found" or "no data available".
+Provide only the briefing. No explanations or commentary.""",
+
+            'financial': f"""Create a Brand Investment Analysis for {company}.
+
+### Brand Investment
+* Marketing and advertising spend
+* Brand development investments
+* Brand asset valuations
+
+### Brand Performance
+* Brand recognition metrics
+* Customer acquisition costs
+* Brand loyalty indicators
+
+### Brand ROI
+* Marketing campaign performance
+* Brand-driven revenue attribution
+* Customer lifetime value by brand engagement
+
+Focus on financial aspects related to brand building and performance.
+Include specific numbers when possible.
+Never mention "no information found" or "no data available".
+Provide only the briefing. No explanations or commentary.""",
+
+            'news': f"""Create a Brand Reputation Analysis for {company}.
+
+### Brand Campaigns
+* Recent marketing campaigns and initiatives
+* Brand messaging evolution
+* Creative campaign performance
+
+### Brand Recognition
+* Awards and industry recognition
+* Media coverage and brand mentions
+* Thought leadership and brand authority
+
+### Brand Perception
+* Public sentiment and brand reputation
+* Customer feedback and testimonials
+* Brand crisis management and responses
+
+Sort newest to oldest.
+Focus on brand-related news and developments.
+Never mention "no information found" or "no data available".
+Provide only the briefing. No explanations or commentary.""",
+        }
+
+    def get_original_prompts(self, company: str, industry: str, hq_location: str) -> Dict[str, str]:
+        """Get original company research prompts"""
+        return {
             'company': f"""Create a focused company briefing for {company}, a {industry} company based in {hq_location}.
 Key requirements:
 1. Start with: "{company} is a [what] that [does what] for [whom]"
@@ -143,26 +226,82 @@ Key requirements:
 5. Never use ### headers, only bullet points
 6. Provide only the briefing. Do not provide explanations or commentary.""",
         }
+
+    async def generate_category_briefing(
+        self, docs: Union[Dict[str, Any], List[Dict[str, Any]]], 
+        category: str, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        company = context.get('company', 'Unknown')
+        industry = context.get('industry', 'Unknown')
+        hq_location = context.get('hq_location', 'Unknown')
+        analysis_type = context.get('analysis_type', 'company_research')
+        
+        logger.info(f"Generating {category} briefing for {company} using {len(docs)} documents (Analysis: {analysis_type})")
+
+        # Send category start status
+        if websocket_manager := context.get('websocket_manager'):
+            if job_id := context.get('job_id'):
+                await websocket_manager.send_status_update(
+                    job_id=job_id,
+                    status="briefing_start",
+                    message=f"Generating {category} briefing",
+                    result={
+                        "step": "Briefing",
+                        "category": category,
+                        "total_docs": len(docs),
+                        "analysis_type": analysis_type
+                    }
+                )
+
+        # Choose prompts based on analysis type
+        if analysis_type == 'brand_dna':
+            prompts = self.get_brand_dna_prompts(company, industry, hq_location)
+        else:
+            prompts = self.get_original_prompts(company, industry, hq_location)
         
         # Normalize docs to a list of (url, doc) tuples
         items = list(docs.items()) if isinstance(docs, dict) else [
             (doc.get('url', f'doc_{i}'), doc) for i, doc in enumerate(docs)
         ]
-        # Sort documents by evaluation score (highest first)
-        sorted_items = sorted(
-            items, 
-            key=lambda x: float(x[1].get('evaluation', {}).get('overall_score', '0')), 
-            reverse=True
-        )
+        
+        # Sort documents by evaluation score (highest first), but prioritize uploaded documents
+        def sort_key(item):
+            _, doc = item
+            source_type = doc.get('source_type', 'external_search')
+            score = float(doc.get('evaluation', {}).get('overall_score', '0'))
+            
+            # Prioritize uploaded documents
+            if source_type == 'uploaded_document':
+                return (2, score)  # Highest priority
+            elif source_type == 'website_scrape':
+                return (1, score)  # Medium priority
+            else:
+                return (0, score)  # Lowest priority
+        
+        sorted_items = sorted(items, key=sort_key, reverse=True)
         
         doc_texts = []
         total_length = 0
-        for _ , doc in sorted_items:
+        uploaded_doc_count = 0
+        
+        for _, doc in sorted_items:
             title = doc.get('title', '')
             content = doc.get('raw_content') or doc.get('content', '')
+            source_type = doc.get('source_type', 'external_search')
+            
             if len(content) > self.max_doc_length:
                 content = content[:self.max_doc_length] + "... [content truncated]"
-            doc_entry = f"Title: {title}\n\nContent: {content}"
+            
+            # Add source type indicator
+            source_indicator = ""
+            if source_type == 'uploaded_document':
+                source_indicator = "[UPLOADED BRAND DOCUMENT] "
+                uploaded_doc_count += 1
+            elif source_type == 'website_scrape':
+                source_indicator = "[COMPANY WEBSITE] "
+            
+            doc_entry = f"{source_indicator}Title: {title}\n\nContent: {content}"
+            
             if total_length + len(doc_entry) < 120000:  # Keep under limit
                 doc_texts.append(doc_entry)
                 total_length += len(doc_entry)
@@ -170,7 +309,13 @@ Key requirements:
                 break
         
         separator = "\n" + "-" * 40 + "\n"
-        prompt = f"""{prompts.get(category, 'Create a focused, informative and insightful research briefing on the company: {company} in the {industry} industry based on the provided documents.')}
+        
+        # Add special instruction for brand DNA analysis with uploaded documents
+        analysis_instruction = ""
+        if analysis_type == 'brand_dna' and uploaded_doc_count > 0:
+            analysis_instruction = f"\n\nIMPORTANT: This analysis includes {uploaded_doc_count} uploaded brand documents marked with [UPLOADED BRAND DOCUMENT]. Prioritize insights from these internal brand assets as they represent the organization's official brand materials.\n"
+        
+        prompt = f"""{prompts.get(category, 'Create a focused, informative and insightful research briefing on the company: {company} in the {industry} industry based on the provided documents.')}{analysis_instruction}
 
 Analyze the following documents and extract key information. Provide only the briefing, no explanations or commentary:
 
@@ -179,7 +324,7 @@ Analyze the following documents and extract key information. Provide only the br
 """
         
         try:
-            logger.info("Sending prompt to LLM")
+            logger.info(f"Sending prompt to LLM (uploaded docs: {uploaded_doc_count})")
             response = await self.openrouter_client.generate_content(prompt, model=self.gemini_model_id)
             content = response.text.strip()
             if not content:
@@ -195,7 +340,8 @@ Analyze the following documents and extract key information. Provide only the br
                         message=f"Completed {category} briefing",
                         result={
                             "step": "Briefing",
-                            "category": category
+                            "category": category,
+                            "uploaded_docs_used": uploaded_doc_count
                         }
                     )
 
@@ -209,24 +355,26 @@ Analyze the following documents and extract key information. Provide only the br
         company = state.get('company', 'Unknown Company')
         websocket_manager = state.get('websocket_manager')
         job_id = state.get('job_id')
+        analysis_type = state.get('analysis_type', 'company_research')
         
         # Send initial briefing status
         if websocket_manager and job_id:
             await websocket_manager.send_status_update(
                 job_id=job_id,
                 status="processing",
-                message="Starting research briefings",
-                result={"step": "Briefing"}
+                message=f"Starting {analysis_type} briefings",
+                result={"step": "Briefing", "analysis_type": analysis_type}
             )
 
         context = {
             "company": company,
             "industry": state.get('industry', 'Unknown'),
             "hq_location": state.get('hq_location', 'Unknown'),
+            "analysis_type": analysis_type,
             "websocket_manager": websocket_manager,
             "job_id": job_id
         }
-        logger.info(f"Creating section briefings for {company}")
+        logger.info(f"Creating section briefings for {company} (Analysis: {analysis_type})")
         
         # Mapping of curated data fields to briefing categories
         categories = {

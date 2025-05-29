@@ -54,6 +54,8 @@ function App() {
     }
   });
   const [originalCompanyName, setOriginalCompanyName] = useState<string>("");
+  const [analysisType, setAnalysisType] = useState<'brand_dna'>('brand_dna');
+  const [uploadedFiles, setUploadedFiles] = useState<number>(0);
 
   // Add ref for status section
   const statusRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,8 @@ function App() {
       setOutput(null);
       setError(null);
       setIsComplete(false);
+      setAnalysisType('brand_dna');
+      setUploadedFiles(0);
       setResearchState({
         status: "idle",
         message: "",
@@ -255,7 +259,9 @@ function App() {
           setIsResearching(false);
           setStatus({
             step: "Complete",
-            message: "Research completed successfully"
+            message: analysisType === 'brand_dna' 
+              ? "Brand DNA analysis completed successfully" 
+              : "Research completed successfully"
           });
           setOutput({
             summary: "",
@@ -522,7 +528,7 @@ function App() {
         // Handle report streaming
         else if (statusData.status === "report_chunk") {
           setOutput((prev) => ({
-            summary: "Generating report...",
+            summary: analysisType === 'brand_dna' ? "Generating Brand DNA report..." : "Generating report...",
             details: {
               report: prev?.details?.report
                 ? prev.details.report + statusData.result.chunk
@@ -560,7 +566,7 @@ function App() {
           statusData.status === "error" ||
           statusData.status === "website_error"
         ) {
-          setError(statusData.error || statusData.message || "Research failed");
+          setError(statusData.error || statusData.message || "Analysis failed");
           if (statusData.status === "website_error" && statusData.result?.continue_research) {
           } else {
             setIsResearching(false);
@@ -587,6 +593,8 @@ function App() {
     companyUrl: string;
     companyHq: string;
     companyIndustry: string;
+    analysisType: 'brand_dna';
+    files?: FileList;
   }) => {
 
     // Clear any existing errors first
@@ -601,6 +609,7 @@ function App() {
     // Reset states
     setHasFinalReport(false);
     setReconnectAttempts(0);
+    setAnalysisType(formData.analysisType);
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
@@ -611,7 +620,8 @@ function App() {
     setHasScrolledToStatus(false); // Reset scroll flag when starting new research
 
     try {
-      const url = `${API_URL}/research`;
+      let url: string;
+      let requestOptions: RequestInit;
 
       // Format the company URL if provided
       const formattedCompanyUrl = formData.companyUrl
@@ -620,24 +630,53 @@ function App() {
           : `https://${formData.companyUrl}`
         : undefined;
 
-      // Log the request details
-      const requestData = {
-        company: formData.companyName,
-        company_url: formattedCompanyUrl,
-        industry: formData.companyIndustry || undefined,
-        hq_location: formData.companyHq || undefined,
-      };
+      if (formData.analysisType === 'brand_dna') {
+        // Use FormData for Brand DNA analysis with file uploads
+        url = `${API_URL}/brand-dna`;
+        const formDataObj = new FormData();
+        formDataObj.append('company', formData.companyName);
+        if (formattedCompanyUrl) formDataObj.append('company_url', formattedCompanyUrl);
+        if (formData.companyIndustry) formDataObj.append('industry', formData.companyIndustry);
+        if (formData.companyHq) formDataObj.append('hq_location', formData.companyHq);
+        
+        // Add files if any
+        if (formData.files) {
+          Array.from(formData.files).forEach(file => {
+            formDataObj.append('files', file);
+          });
+          setUploadedFiles(formData.files.length);
+        }
 
-      const response = await fetch(url, {
-        method: "POST",
-        mode: "cors",
-        credentials: "omit",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      }).catch((error) => {
+        requestOptions = {
+          method: "POST",
+          mode: "cors",
+          credentials: "omit",
+          body: formDataObj,
+        };
+      } else {
+        // Use JSON for regular company research
+        url = `${API_URL}/research`;
+        const requestData = {
+          company: formData.companyName,
+          company_url: formattedCompanyUrl,
+          industry: formData.companyIndustry || undefined,
+          hq_location: formData.companyHq || undefined,
+          analysis_type: formData.analysisType,
+        };
+
+        requestOptions = {
+          method: "POST",
+          mode: "cors",
+          credentials: "omit",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        };
+      }
+
+      const response = await fetch(url, requestOptions).catch((error) => {
         console.error("Fetch error:", error);
         throw error;
       });
@@ -665,7 +704,7 @@ function App() {
       }
     } catch (err) {
       console.log("Caught error:", err);
-      setError(err instanceof Error ? err.message : "Failed to start research");
+      setError(err instanceof Error ? err.message : "Failed to start analysis");
       setIsResearching(false);
     }
   };
@@ -701,7 +740,10 @@ function App() {
       // Create a temporary link element
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${originalCompanyName || 'research_report'}.pdf`;
+      const filename = analysisType === 'brand_dna' 
+        ? `${originalCompanyName || 'brand_dna'}_analysis.pdf`
+        : `${originalCompanyName || 'research_report'}.pdf`;
+      link.download = filename;
       
       // Append to body, click, and remove
       document.body.appendChild(link);
@@ -732,12 +774,6 @@ function App() {
       setError('Failed to copy to clipboard');
     }
   };
-
-  // Add document count display component
-
-  // Add BriefingProgress component
-
-  // Add EnrichmentProgress component
 
   // Function to render progress components in order
   const renderProgressComponents = () => {

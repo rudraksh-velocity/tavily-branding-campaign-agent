@@ -236,9 +236,11 @@ docker compose down && docker compose up
 python -m application.py
 
 # Option 2: FastAPI with Uvicorn
-uvicorn application:app --reload --port 8000
+from typing import TypedDict, NotRequired, Required, Dict, List, Anyfrom typing import TypedDict, Dict, List, Any
+from typing_extensions import NotRequired, Requiredfrom typing import TypedDict, NotRequired, Required, Dict, List, Any
 ```
-
+from typing import TypedDict, Dict, List, Any
+from typing_extensions import NotRequired, Required
 2. In a new terminal, start the frontend:
 ```bash
 cd ui

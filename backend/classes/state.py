@@ -1,4 +1,8 @@
-from typing import TypedDict, NotRequired, Required, Dict, List, Any
+from typing import TypedDict, Dict, List, Any
+try:
+    from typing import NotRequired, Required
+except ImportError:
+    from typing_extensions import NotRequired, Required
 from backend.services.websocket_manager import WebSocketManager
 
 #Define the input state
@@ -9,6 +13,9 @@ class InputState(TypedDict, total=False):
     industry: NotRequired[str]
     websocket_manager: NotRequired[WebSocketManager]
     job_id: NotRequired[str]
+    # Brand DNA additions
+    uploaded_documents: NotRequired[List[Dict[str, Any]]]
+    analysis_type: NotRequired[str]  # "brand_dna" or "company_research"
 
 class ResearchState(InputState):
     site_scrape: Dict[str, Any]
@@ -28,3 +35,6 @@ class ResearchState(InputState):
     references: List[str]
     briefings: Dict[str, Any]
     report: str
+    # Brand DNA specific data
+    brand_documents_data: Dict[str, Any]
+    brand_analysis_context: Dict[str, Any]
