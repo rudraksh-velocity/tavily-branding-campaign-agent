@@ -1,5 +1,10 @@
 import { API_URL } from './constants';
-import { ResearchOutput, ResearchState, ResearchStatusType } from '../types';
+import { ResearchOutput, ResearchState } from '../types';
+
+interface ResearchStatusType {
+  step: string;
+  message: string;
+}
 
 export const handleGeneratePdf = async (
   output: ResearchOutput | null,

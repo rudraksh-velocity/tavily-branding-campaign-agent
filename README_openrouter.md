@@ -229,22 +229,7 @@ version_compare() {
 
 echo -e "${BOLD}🚀 Welcome to the Agentic Company Researcher Setup!${NC}\n"
 
-# Check if Python 3.11+ is installed
-echo -e "${BLUE}Checking Python version...${NC}"
-if command -v python3 >/dev/null 2>&1; then
-    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    if [ "$(version_compare "$python_version")" -ge "$(version_compare "3.11)" ]; then
-        echo -e "${GREEN}✓ Python $python_version is installed${NC}"
-    else
-        echo "❌ Python 3.11 or higher is required. Current version: $python_version"
-        echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
-        exit 1
-    fi
-else
-    echo "❌ Python 3 is not installed"
-    echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
-    exit 1
-fi
+
 
 # Check if Node.js 18+ is installed
 echo -e "\n${BLUE}Checking Node.js version...${NC}"
@@ -418,42 +403,39 @@ NC='\033[0m' # No Color
 
 # Version comparison function
 version_compare() {
-    echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'
+    # Pads each numeric part to ensure correct comparison
+    printf "%03d%03d%03d" $(echo "$1" | tr '.' ' ')
 }
 
-echo -e "${BOLD}🚀 Welcome to the Agentic Company Researcher Setup!${NC}\n"
-
-# Check if Python 3.11+ is installed
 echo -e "${BLUE}Checking Python version...${NC}"
 if command -v python3 >/dev/null 2>&1; then
-    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    if [ "$(version_compare "$python_version")" -ge "$(version_compare "3.11)" ]; then
+    python_version=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+    if [ "$(version_compare "$python_version")" -ge "$(version_compare "3.11.0")" ]; then
         echo -e "${GREEN}✓ Python $python_version is installed${NC}"
     else
-        echo "❌ Python 3.11 or higher is required. Current version: $python_version"
-        echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
+        echo -e "❌ Python 3.11 or higher is required. Current version: $python_version"
+        echo -e "Please install Python 3.11 or higher from https://www.python.org/downloads/"
         exit 1
     fi
 else
-    echo "❌ Python 3 is not installed"
-    echo "Please install Python 3.11 or higher from https://www.python.org/downloads/"
+    echo -e "❌ Python 3 is not installed"
+    echo -e "Please install Python 3.11 or higher from https://www.python.org/downloads/"
     exit 1
 fi
 
-# Check if Node.js 18+ is installed
 echo -e "\n${BLUE}Checking Node.js version...${NC}"
 if command -v node >/dev/null 2>&1; then
     node_version=$(node -v | cut -d'v' -f2)
     if [ "$(version_compare "$node_version")" -ge "$(version_compare "18.0.0")" ]; then
         echo -e "${GREEN}✓ Node.js $node_version is installed${NC}"
     else
-        echo "❌ Node.js 18 or higher is required. Current version: $node_version"
-        echo "Please install Node.js 18 or higher from https://nodejs.org/"
+        echo -e "❌ Node.js 18 or higher is required. Current version: $node_version"
+        echo -e "Please install Node.js 18 or higher from https://nodejs.org/"
         exit 1
     fi
 else
-    echo "❌ Node.js is not installed"
-    echo "Please install Node.js 18 or higher from https://nodejs.org/"
+    echo -e "❌ Node.js is not installed"
+    echo -e "Please install Node.js 18 or higher from https://nodejs.org/"
     exit 1
 fi
 

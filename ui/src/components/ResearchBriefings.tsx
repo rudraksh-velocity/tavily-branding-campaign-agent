@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Building, TrendingUp, DollarSign, Newspaper, Clock } from 'lucide-react';
 
 type BriefingStatus = {
   company: boolean;
@@ -21,76 +21,131 @@ const ResearchBriefings: React.FC<ResearchBriefingsProps> = ({
   onToggleExpand,
   isResetting
 }) => {
-  const glassStyle = "backdrop-filter backdrop-blur-lg bg-white/80 border border-gray-200 shadow-xl";
-  const cardGlassStyle = "backdrop-filter backdrop-blur-lg bg-white/80 shadow-sm";
+  const briefingCategories = {
+    company: { icon: Building, color: 'from-blue-500 to-blue-600', name: 'Company Analysis' },
+    industry: { icon: TrendingUp, color: 'from-green-500 to-emerald-500', name: 'Industry Insights' },
+    financial: { icon: DollarSign, color: 'from-yellow-500 to-orange-500', name: 'Financial Health' },
+    news: { icon: Newspaper, color: 'from-red-500 to-pink-500', name: 'News & Updates' }
+  };
+
+  const completedCount = Object.values(briefingStatus).filter(Boolean).length;
+  const totalCount = Object.keys(briefingStatus).length;
 
   return (
     <div 
-      className={`${glassStyle} rounded-2xl p-6 transition-all duration-300 ease-in-out ${
+      className={`relative transition-all duration-500 ${
         isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'
-      } font-['DM_Sans']`}
+      }`}
     >
-      <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={onToggleExpand}
-      >
-        <h2 className="text-xl font-semibold text-gray-900">
-          Research Briefings
-        </h2>
-        <button className="text-gray-600 hover:text-gray-900 transition-colors">
-          {isExpanded ? (
-            <ChevronUp className="h-6 w-6" />
-          ) : (
-            <ChevronDown className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
-      <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
-        isExpanded ? 'mt-6 max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-      }`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-1">
-          {['company', 'industry', 'financial', 'news'].map((category) => (
-            <div 
-              key={category} 
-              className={`${cardGlassStyle} rounded-lg p-4 transition-all duration-500 ease-in-out relative ${
-                briefingStatus[category as keyof BriefingStatus] 
-                  ? 'border border-[#468BFF] bg-gradient-to-br from-[#468BFF]/5 to-[#468BFF]/10 shadow-md' 
-                  : 'border border-gray-200 bg-white/80 hover:border-gray-300 hover:shadow-sm'
-              } backdrop-blur-sm group`}
-            >
-              {/* Background decoration element (only visible when active) */}
-              <div 
-                className={`absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(70,139,255,0.15),transparent_70%)] opacity-0 transition-opacity duration-700 ease-in-out rounded-lg ${
-                  briefingStatus[category as keyof BriefingStatus] ? 'opacity-100' : ''
-                }`}
-                style={{ pointerEvents: 'none' }}
-              />
-              
-              <div className="relative z-10 flex items-center justify-between">
-                <h3 className={`text-sm font-medium capitalize transition-all duration-500 ${
-                  briefingStatus[category as keyof BriefingStatus]
-                    ? 'text-[#468BFF]'
-                    : 'text-gray-700 group-hover:text-gray-900'
-                }`}>{category}</h3>
-                {briefingStatus[category as keyof BriefingStatus] ? (
-                  <CheckCircle2 className="h-4 w-4 text-[#468BFF] transition-all duration-300" />
-                ) : (
-                  <div className="h-4 w-4 rounded-full border border-gray-200 group-hover:border-gray-300 transition-all duration-300"></div>
-                )}
-              </div>
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-300/20 via-blue-400/20 to-blue-500/20 rounded-3xl blur-xl"></div>
+      
+      {/* Main Container */}
+      <div className="relative bg-white/80 backdrop-blur-xl border-2 border-blue-200/50 rounded-3xl p-6 shadow-xl">
+        {/* Header */}
+        <div 
+          className="flex items-center justify-between cursor-pointer group"
+          onClick={onToggleExpand}
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
-          ))}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
+                Research Briefings
+              </h2>
+              <p className="text-gray-600 text-sm">
+                {completedCount} of {totalCount} briefings completed
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <div className="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full">
+              <span className="text-blue-700 text-sm font-medium">{completedCount}/{totalCount}</span>
+            </div>
+            <button className="p-2 hover:bg-blue-100/50 rounded-lg transition-all duration-200">
+              {isExpanded ? (
+                <ChevronUp className="h-5 w-5 text-gray-600 group-hover:text-gray-800" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-gray-600 group-hover:text-gray-800" />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {!isExpanded && (
-        <div className="mt-2 text-sm text-gray-600">
-          {Object.values(briefingStatus).filter(Boolean).length} of {Object.keys(briefingStatus).length} briefings completed
+        {/* Expandable Content */}
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          isExpanded ? 'mt-6 max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Object.entries(briefingCategories).map(([category, config]) => {
+              const isCompleted = briefingStatus[category as keyof BriefingStatus];
+              const IconComponent = config.icon;
+              
+              return (
+                <div 
+                  key={category}
+                  className={`relative overflow-hidden rounded-2xl p-4 transition-all duration-500 ${
+                    isCompleted 
+                      ? `bg-gradient-to-r ${config.color}/20 border-2 border-white/30 shadow-lg` 
+                      : 'bg-blue-50/50 border border-blue-200/50 hover:bg-blue-100/50'
+                  }`}
+                >
+                  {/* Animated Background for Completed */}
+                  {isCompleted && (
+                    <div className={`absolute inset-0 bg-gradient-to-r ${config.color}/10 animate-pulse`}></div>
+                  )}
+                  
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 bg-gradient-to-r ${config.color} rounded-lg flex items-center justify-center shadow-md`}>
+                        <IconComponent className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-gray-800 font-semibold text-sm">{config.name}</h3>
+                        <p className="text-gray-600 text-xs capitalize">{category} sector</p>
+                      </div>
+                    </div>
+                    
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    ) : (
+                      <Clock className="h-5 w-5 text-gray-400 animate-pulse" />
+                    )}
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mt-3">
+                    <div className="w-full bg-blue-200/50 rounded-full h-1 overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r ${config.color} transition-all duration-1000 ${
+                          isCompleted ? 'w-full' : 'w-0'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      )}
+        
+        {/* Collapsed Progress */}
+        {!isExpanded && (
+          <div className="mt-4">
+            <div className="w-full bg-blue-200/50 rounded-full h-2 overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-1000"
+                style={{ width: `${(completedCount / totalCount) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default ResearchBriefings; 
+export default ResearchBriefings;

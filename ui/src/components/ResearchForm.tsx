@@ -44,11 +44,9 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
   const [isExampleAnimating, setIsExampleAnimating] = useState(false);
   const [wasResearching, setWasResearching] = useState(false);
   
-  // Refs for form fields for animation
   const formRef = useRef<HTMLDivElement>(null);
   const exampleRef = useRef<HTMLDivElement>(null);
   
-  // Hide example suggestion when form is filled
   useEffect(() => {
     if (formData.companyName) {
       setShowExampleSuggestion(false);
@@ -57,13 +55,9 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
     }
   }, [formData.companyName, isExampleAnimating]);
 
-  // Track research state changes to show example popup when research completes
   useEffect(() => {
-    // If we were researching and now we're not, research just completed
     if (wasResearching && !isResearching) {
-      // Add a slight delay to let animations complete
       setTimeout(() => {
-        // Reset form fields to empty values
         setFormData({
           companyName: "",
           companyUrl: "",
@@ -77,8 +71,6 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
         setShowExampleSuggestion(true);
       }, 1000);
     }
-    
-    // Update tracking state
     setWasResearching(isResearching);
   }, [isResearching, wasResearching]);
 
@@ -103,24 +95,19 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
   };
   
   const fillExampleData = (example: ExampleCompany) => {
-    // Start animation
     setIsExampleAnimating(true);
     
-    // Animate the suggestion moving into the form
     if (exampleRef.current && formRef.current) {
       const exampleRect = exampleRef.current.getBoundingClientRect();
       const formRect = formRef.current.getBoundingClientRect();
       
-      // Calculate the distance to move
       const moveX = formRect.left + 20 - exampleRect.left;
       const moveY = formRect.top + 20 - exampleRect.top;
       
-      // Apply animation
       exampleRef.current.style.transform = `translate(${moveX}px, ${moveY}px) scale(0.6)`;
       exampleRef.current.style.opacity = '0';
     }
     
-    // Fill in form data after a short delay for animation
     setTimeout(() => {
       const newFormData = {
         companyName: example.name,
@@ -130,10 +117,8 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
         analysisType: 'brand_dna' as const
       };
       
-      // Update form data
       setFormData(newFormData);
       
-      // Start research automatically (only if not already researching)
       if (!isResearching) {
         onSubmit(newFormData);
       }
@@ -168,7 +153,6 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
 
   return (
     <div className="relative" ref={formRef}>
-      {/* Example Suggestion */}
       <ExamplePopup 
         visible={showExampleSuggestion}
         onExampleSelect={fillExampleData}
@@ -177,20 +161,20 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
       />
 
       {/* Main Form */}
-      <div className={`${glassStyle.card} backdrop-blur-2xl bg-white/90 border-gray-200/50 shadow-xl`}>
+      <div className={`${glassStyle.card} rounded-3xl p-8`}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Brand Name */}
             <div className="relative group">
               <label
                 htmlFor="companyName"
-                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-gray-900 font-['DM_Sans']"
+                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-blue-700 font-['DM_Sans']"
               >
-                Brand Name <span className="text-gray-900/70">*</span>
+                Brand Name <span className="text-blue-600">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-100/50 to-gray-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
-                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 stroke-[#468BFF] transition-all duration-200 group-hover:stroke-[#8FBCFA] z-10" strokeWidth={1.5} />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-100/30 to-blue-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-600 transition-all duration-200 group-hover:text-blue-700 z-10" strokeWidth={1.5} />
                 <input
                   required
                   id="companyName"
@@ -202,7 +186,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                       companyName: e.target.value,
                     }))
                   }
-                  className={`${glassStyle.input} transition-all duration-300 focus:border-[#468BFF]/50 focus:ring-1 focus:ring-[#468BFF]/50 group-hover:border-[#468BFF]/30 bg-white/80 backdrop-blur-sm text-lg py-4 pl-12 font-['DM_Sans']`}
+                  className="w-full rounded-xl border-2 border-blue-200/50 bg-white/90 backdrop-blur-sm text-lg py-4 pl-12 pr-4 transition-all duration-300 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 group-hover:border-blue-300/70 font-['DM_Sans'] text-gray-800 placeholder-gray-400"
                   placeholder="Enter brand name"
                 />
               </div>
@@ -212,13 +196,13 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
             <div className="relative group">
               <label
                 htmlFor="companyUrl"
-                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-gray-900 font-['DM_Sans']"
+                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-blue-700 font-['DM_Sans']"
               >
                 Brand URL
               </label>
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-100/50 to-gray-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 stroke-[#468BFF] transition-all duration-200 group-hover:stroke-[#8FBCFA] z-10" strokeWidth={1.5} />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-100/30 to-blue-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-600 transition-all duration-200 group-hover:text-blue-700 z-10" strokeWidth={1.5} />
                 <input
                   id="companyUrl"
                   type="text"
@@ -229,7 +213,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                       companyUrl: e.target.value,
                     }))
                   }
-                  className={`${glassStyle.input} transition-all duration-300 focus:border-[#468BFF]/50 focus:ring-1 focus:ring-[#468BFF]/50 group-hover:border-[#468BFF]/30 bg-white/80 backdrop-blur-sm text-lg py-4 pl-12 font-['DM_Sans']`}
+                  className="w-full rounded-xl border-2 border-blue-200/50 bg-white/90 backdrop-blur-sm text-lg py-4 pl-12 pr-4 transition-all duration-300 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 group-hover:border-blue-300/70 font-['DM_Sans'] text-gray-800 placeholder-gray-400"
                   placeholder="example.com"
                 />
               </div>
@@ -239,7 +223,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
             <div className="relative group">
               <label
                 htmlFor="companyHq"
-                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-gray-900 font-['DM_Sans']"
+                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-blue-700 font-['DM_Sans']"
               >
                 Brand HQ
               </label>
@@ -251,7 +235,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                     companyHq: value,
                   }))
                 }
-                className={`${glassStyle.input} transition-all duration-300 focus:border-[#468BFF]/50 focus:ring-1 focus:ring-[#468BFF]/50 group-hover:border-[#468BFF]/30 bg-white/80 backdrop-blur-sm text-lg py-4 pl-12 font-['DM_Sans']`}
+                className="w-full rounded-xl border-2 border-blue-200/50 bg-white/90 backdrop-blur-sm text-lg py-4 pl-12 pr-4 transition-all duration-300 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 group-hover:border-blue-300/70 font-['DM_Sans'] text-gray-800 placeholder-gray-400"
               />
             </div>
 
@@ -259,13 +243,13 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
             <div className="relative group">
               <label
                 htmlFor="companyIndustry"
-                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-gray-900 font-['DM_Sans']"
+                className="block text-base font-medium text-gray-700 mb-2.5 transition-all duration-200 group-hover:text-blue-700 font-['DM_Sans']"
               >
                 Brand Industry
               </label>
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-100/50 to-gray-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
-                <Factory className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 stroke-[#468BFF] transition-all duration-200 group-hover:stroke-[#8FBCFA] z-10" strokeWidth={1.5} />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-blue-100/30 to-blue-50/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
+                <Factory className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-600 transition-all duration-200 group-hover:text-blue-700 z-10" strokeWidth={1.5} />
                 <input
                   id="companyIndustry"
                   type="text"
@@ -276,7 +260,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                       companyIndustry: e.target.value,
                     }))
                   }
-                  className={`${glassStyle.input} transition-all duration-300 focus:border-[#468BFF]/50 focus:ring-1 focus:ring-[#468BFF]/50 group-hover:border-[#468BFF]/30 bg-white/80 backdrop-blur-sm text-lg py-4 pl-12 font-['DM_Sans']`}
+                  className="w-full rounded-xl border-2 border-blue-200/50 bg-white/90 backdrop-blur-sm text-lg py-4 pl-12 pr-4 transition-all duration-300 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 group-hover:border-blue-300/70 font-['DM_Sans'] text-gray-800 placeholder-gray-400"
                   placeholder="e.g. Technology, Healthcare"
                 />
               </div>
@@ -294,11 +278,11 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
             
             {/* File Upload Area */}
             <div 
-              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#468BFF]/50 transition-colors duration-300 cursor-pointer"
+              className="border-2 border-dashed border-blue-300/50 rounded-xl p-6 text-center hover:border-blue-500/70 hover:bg-blue-50/30 transition-all duration-300 cursor-pointer backdrop-blur-sm"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 font-['DM_Sans']">
+              <Upload className="mx-auto h-8 w-8 text-blue-500 mb-2" />
+              <p className="text-sm text-gray-700 font-['DM_Sans']">
                 Click to upload files or drag and drop
               </p>
               <p className="text-xs text-gray-500 font-['DM_Sans']">
@@ -322,9 +306,9 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                 </p>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 bg-blue-50/50 border border-blue-200/50 rounded-lg backdrop-blur-sm">
                       <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-[#468BFF]" />
+                        <FileText className="h-4 w-4 text-blue-600" />
                         <span className="text-sm text-gray-700 font-['DM_Sans']">{file.name}</span>
                         <span className="text-xs text-gray-500 font-['DM_Sans']">
                           ({formatFileSize(file.size)})
@@ -333,7 +317,7 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
                       <button
                         type="button"
                         onClick={() => removeFile(index)}
-                        className="text-gray-400 hover:text-red-500 transition-colors duration-200"
+                        className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1 rounded-md hover:bg-red-50"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -347,21 +331,21 @@ const ResearchForm: React.FC<ResearchFormProps> = ({
           <button
             type="submit"
             disabled={isResearching || !formData.companyName}
-            className="relative group w-fit mx-auto block overflow-hidden rounded-lg bg-white/80 backdrop-blur-sm border border-gray-200 transition-all duration-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed px-12 font-['DM_Sans']"
+            className="relative group w-fit mx-auto block overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-blue-700 px-12 font-['DM_Sans'] shadow-lg hover:shadow-xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-100/50 to-gray-50/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/0 via-blue-300/30 to-blue-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             <div className="relative flex items-center justify-center py-3.5">
               {isResearching ? (
                 <>
-                  <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 loader-icon" style={{ stroke: loaderColor }} />
-                  <span className="text-base font-medium text-gray-900/90">
+                  <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" style={{ stroke: loaderColor }} />
+                  <span className="text-base font-medium text-white">
                     Analyzing Brand DNA...
                   </span>
                 </>
               ) : (
                 <>
-                  <Dna className="-ml-1 mr-2 h-5 w-5 text-gray-900/90" />
-                  <span className="text-base font-medium text-gray-900/90">
+                  <Dna className="-ml-1 mr-2 h-5 w-5 text-white" />
+                  <span className="text-base font-medium text-white">
                     Start Brand DNA Analysis
                   </span>
                 </>
