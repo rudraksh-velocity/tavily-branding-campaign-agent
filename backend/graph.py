@@ -1,6 +1,6 @@
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph
-from typing import Dict, Any, AsyncIterator
+from typing import Dict, Any, AsyncIterator, List
 import logging
 
 from .classes.state import InputState
@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 
 class Graph:
     def __init__(self, company=None, url=None, hq_location=None, industry=None,
+                 analysis_type="company_research", uploaded_documents=None,
                  websocket_manager=None, job_id=None):
         self.websocket_manager = websocket_manager
         self.job_id = job_id
+        self.analysis_type = analysis_type
         
         # Initialize InputState
         self.input_state = InputState(
@@ -27,10 +29,12 @@ class Graph:
             company_url=url,
             hq_location=hq_location,
             industry=industry,
+            analysis_type=analysis_type,
+            uploaded_documents=uploaded_documents or [],
             websocket_manager=websocket_manager,
             job_id=job_id,
             messages=[
-                SystemMessage(content="Expert researcher starting investigation")
+                SystemMessage(content=f"Expert researcher starting {analysis_type.replace('_', ' ')} investigation")
             ]
         )
 
@@ -108,6 +112,7 @@ class Graph:
             "data": {
                 "current_node": state.get("current_node", "unknown"),
                 "progress": state.get("progress", 0),
+                "analysis_type": self.analysis_type,
                 "keys": list(state.keys())
             }
         }

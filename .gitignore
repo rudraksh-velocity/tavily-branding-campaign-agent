@@ -9,6 +9,8 @@ __pycache__/
 
 # Virtual Environment
 .venv/
+.venv
+.venv_brand_dna/
 
 # IDE and OS
 .vscode/

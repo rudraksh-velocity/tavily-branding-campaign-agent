@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Header from './components/Header';
 import ResearchBriefings from './components/ResearchBriefings';
 import CurationExtraction from './components/CurationExtraction';
@@ -6,9 +6,27 @@ import ResearchQueries from './components/ResearchQueries';
 import ResearchStatus from './components/ResearchStatus';
 import ResearchReport from './components/ResearchReport';
 import ResearchForm from './components/ResearchForm';
-import {ResearchOutput, DocCount,DocCounts, EnrichmentCounts, ResearchState, ResearchStatusType} from './types';
+import {ResearchOutput, EnrichmentCounts, ResearchState} from './types';
 import { checkForFinalReport } from './utils/handlers';
-import { colorAnimation, dmSansStyle, glassStyle, fadeInAnimation } from './styles';
+import { 
+  Zap, 
+  Target, 
+  Brain, 
+  Sparkles, 
+  ArrowUp, 
+  RefreshCw, 
+  Settings, 
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2
+} from 'lucide-react';
+
+// Define the missing ResearchStatusType
+interface ResearchStatusType {
+  step: string;
+  message: string;
+}
 
 const API_URL = import.meta.env.VITE_API_URL;
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -19,28 +37,122 @@ if (!API_URL || !WS_URL) {
   );
 }
 
-// Add styles to document head
-const colorStyle = document.createElement('style');
-colorStyle.textContent = colorAnimation;
-document.head.appendChild(colorStyle);
+// Light White & Blue Theme Configuration
+const modernTheme = {
+  background: {
+    primary: 'bg-gradient-to-br from-white via-blue-50 to-blue-100',
+    secondary: 'bg-white/80',
+    accent: 'bg-gradient-to-r from-blue-500/10 to-blue-600/10'
+  },
+  glass: {
+    card: 'backdrop-blur-xl bg-white/80 border border-blue-200/30 shadow-xl',
+    panel: 'backdrop-blur-2xl bg-white/70 border border-blue-300/40',
+    input: 'backdrop-blur-sm bg-white/60 border-2 border-blue-300'
+  },
+  colors: {
+    primary: ['#6366f1', '#8b5cf6', '#a855f7', '#c084fc'],
+    success: ['#10b981', '#34d399', '#6ee7b7'],
+    warning: ['#f59e0b', '#fbbf24', '#fcd34d'],
+    error: ['#ef4444', '#f87171', '#fca5a5'],
+    info: ['#3b82f6', '#60a5fa', '#93c5fd']
+  }
+};
 
-const dmSansStyleElement = document.createElement('style');
-dmSansStyleElement.textContent = dmSansStyle;
-document.head.appendChild(dmSansStyleElement);
+// Enhanced Animation System
+const animations = {
+  fadeIn: 'animate-in fade-in duration-700 ease-out',
+  slideUp: 'animate-in slide-in-from-bottom-4 duration-500 ease-out',
+  slideDown: 'animate-in slide-in-from-top-4 duration-500 ease-out',
+  scaleIn: 'animate-in zoom-in-95 duration-300 ease-out',
+  pulse: 'animate-pulse',
+  bounce: 'animate-bounce',
+  spin: 'animate-spin'
+};
+
+// Neural Network Particle System
+const useParticleSystem = (isActive: boolean) => {
+  const [particles, setParticles] = useState<Array<{
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    opacity: number;
+  }>>([]);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const createParticle = (id: number) => ({
+      id,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      opacity: Math.random() * 0.5 + 0.2
+    });
+
+    const initialParticles = Array.from({ length: 20 }, (_, i) => createParticle(i));
+    setParticles(initialParticles);
+
+    const interval = setInterval(() => {
+      setParticles(prev => prev.map(particle => ({
+        ...particle,
+        x: (particle.x + particle.vx + window.innerWidth) % window.innerWidth,
+        y: (particle.y + particle.vy + window.innerHeight) % window.innerHeight,
+        opacity: Math.sin(Date.now() * 0.001 + particle.id) * 0.3 + 0.4
+      })));
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return particles;
+};
 
 function App() {
-
+  // Core Research State
   const [isResearching, setIsResearching] = useState(false);
   const [status, setStatus] = useState<ResearchStatusType | null>(null);
   const [output, setOutput] = useState<ResearchOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [hasFinalReport, setHasFinalReport] = useState(false);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const maxReconnectAttempts = 3;
-  const reconnectDelay = 2000; // 2 seconds
+  const [originalCompanyName, setOriginalCompanyName] = useState<string>("");
+
+  // Enhanced UI State  
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [, setNotifications] = useState<Array<{
+    id: number;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+    timestamp: number;
+  }>>([]);
+
+  // Research Flow State
+  const [currentPhase, setCurrentPhase] = useState<'search' | 'enrichment' | 'briefing' | 'complete' | null>(null);
+  const [researchProgress, setResearchProgress] = useState(0);
+  const [phaseTimestamps, setPhaseTimestamps] = useState<Record<string, number>>({});
+  
+  // Section Expansion State
+  const [expandedSections, setExpandedSections] = useState({
+    queries: true,
+    briefings: true,
+    curation: true,
+    settings: false
+  });
+
+  // Animation and Visual State
+  const [loaderColor, setLoaderColor] = useState("#6366f1");
+  const [isResetting, setIsResetting] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [hasScrolledToStatus, setHasScrolledToStatus] = useState(false);
+
+  // Research State Management
   const [researchState, setResearchState] = useState<ResearchState>({
     status: "idle",
     message: "",
@@ -53,80 +165,91 @@ function App() {
       news: false
     }
   });
-  const [originalCompanyName, setOriginalCompanyName] = useState<string>("");
 
-  // Add ref for status section
+  // Refs
+  const wsRef = useRef<WebSocket | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const maxReconnectAttempts = 3;
+  const reconnectDelay = 2000;
 
-  // Add state to track initial scroll
-  const [hasScrolledToStatus, setHasScrolledToStatus] = useState(false);
+  // Particle System
+  const particles = useParticleSystem(isResearching);
 
-  // Modify the scroll helper function
-  const scrollToStatus = () => {
-    if (!hasScrolledToStatus && statusRef.current) {
-      const yOffset = -20; // Reduced negative offset to scroll further down
-      const y = statusRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-      setHasScrolledToStatus(true);
-    }
-  };
-
-  // Add new state for query section collapse
-  const [isQueriesExpanded, setIsQueriesExpanded] = useState(true);
-  const [shouldShowQueries, setShouldShowQueries] = useState(false);
-  
-  // Add new state for tracking search phase
-  const [isSearchPhase, setIsSearchPhase] = useState(false);
-
-  // Add state for section collapse
-  const [isBriefingExpanded, setIsBriefingExpanded] = useState(true);
-  const [isEnrichmentExpanded, setIsEnrichmentExpanded] = useState(true);
-
-  // Add state for phase tracking
-  const [currentPhase, setCurrentPhase] = useState<'search' | 'enrichment' | 'briefing' | 'complete' | null>(null);
-
-  // Add new state for PDF generation
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [, setPdfUrl] = useState<string | null>(null);
-
-  const [isResetting, setIsResetting] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-
-  // Add new state for color cycling
-  const [loaderColor, setLoaderColor] = useState("#468BFF");
-  
-  // Add useEffect for color cycling
+  // Enhanced Color Cycling System
   useEffect(() => {
     if (!isResearching) return;
     
-    const colors = [
-      "#468BFF", // Blue
-      "#8FBCFA", // Light Blue
-      "#FE363B", // Red
-      "#FF9A9D", // Light Red
-      "#FDBB11", // Yellow
-      "#F6D785", // Light Yellow
-    ];
+    const colorSets = {
+      search: ["#6366f1", "#8b5cf6", "#a855f7"],
+      enrichment: ["#10b981", "#34d399", "#6ee7b7"],
+      briefing: ["#f59e0b", "#fbbf24", "#fcd34d"],
+      complete: ["#ef4444", "#f87171", "#fca5a5"]
+    };
     
+    const currentColors = colorSets[currentPhase || 'search'];
     let currentIndex = 0;
     
     const interval = setInterval(() => {
-      currentIndex = (currentIndex + 1) % colors.length;
-      setLoaderColor(colors[currentIndex]);
-    }, 1000);
+      currentIndex = (currentIndex + 1) % currentColors.length;
+      setLoaderColor(currentColors[currentIndex]);
+    }, 1200);
     
     return () => clearInterval(interval);
-  }, [isResearching]);
+  }, [isResearching, currentPhase]);
 
-  const resetResearch = () => {
+  // Progress Calculation
+  useEffect(() => {
+    let progress = 0;
+    
+    if (currentPhase === 'search') progress = 25;
+    else if (currentPhase === 'enrichment') progress = 50;
+    else if (currentPhase === 'briefing') progress = 75;
+    else if (currentPhase === 'complete') progress = 100;
+    
+    // Add sub-progress based on completed briefings
+    if (currentPhase === 'briefing') {
+      const completedBriefings = Object.values(researchState.briefingStatus).filter(Boolean).length;
+      progress += (completedBriefings / 4) * 25;
+    }
+    
+    setResearchProgress(progress);
+  }, [currentPhase, researchState.briefingStatus]);
+
+  // Scroll Detection
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.pageYOffset > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Notification System
+  const addNotification = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error') => {
+    const id = Date.now();
+    const notification = { id, message, type, timestamp: id };
+    
+    setNotifications(prev => [...prev, notification]);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  }, []);
+
+  // Enhanced Reset Function
+  const resetResearch = useCallback(() => {
     setIsResetting(true);
     
-    // Use setTimeout to create a smooth transition
     setTimeout(() => {
       setStatus(null);
       setOutput(null);
       setError(null);
       setIsComplete(false);
+      setResearchProgress(0);
+      setPhaseTimestamps({});
       setResearchState({
         status: "idle",
         message: "",
@@ -139,46 +262,44 @@ function App() {
           news: false
         }
       });
-      setPdfUrl(null);
       setCurrentPhase(null);
-      setIsSearchPhase(false);
-      setShouldShowQueries(false);
-      setIsQueriesExpanded(true);
-      setIsBriefingExpanded(true);
-      setIsEnrichmentExpanded(true);
+      setHasScrolledToStatus(false);
       setIsResetting(false);
-      setHasScrolledToStatus(false); // Reset scroll flag when resetting research
-    }, 300); // Match this with CSS transition duration
-  };
+      
+      addNotification("Research session reset", "info");
+    }, 400);
+  }, [addNotification]);
 
-  const connectWebSocket = (jobId: string) => {
-    console.log("Initializing WebSocket connection for job:", jobId);
+  // Enhanced Scroll Function
+  const scrollToStatus = useCallback(() => {
+    if (!hasScrolledToStatus && statusRef.current) {
+      const yOffset = -100;
+      const y = statusRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      setHasScrolledToStatus(true);
+    }
+  }, [hasScrolledToStatus]);
+
+  // WebSocket Connection with Enhanced Error Handling
+  const connectWebSocket = useCallback((jobId: string) => {
+    console.log("🔌 Initializing Enhanced WebSocket connection for job:", jobId);
     
-    // Use the WS_URL directly if it's a full URL, otherwise construct it
     const wsUrl = WS_URL.startsWith('wss://') || WS_URL.startsWith('ws://')
       ? `${WS_URL}/research/ws/${jobId}`
       : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${WS_URL}/research/ws/${jobId}`;
     
-    console.log("Connecting to WebSocket URL:", wsUrl);
-    
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log("WebSocket connection established for job:", jobId);
+      console.log("✅ WebSocket connection established");
       setReconnectAttempts(0);
+      addNotification("Connected to research server", "success");
     };
 
     ws.onclose = (event) => {
-      console.log("WebSocket disconnected", {
-        jobId,
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean,
-        timestamp: new Date().toISOString()
-      });
+      console.log("🔌 WebSocket disconnected", { code: event.code, reason: event.reason });
 
       if (isResearching && !hasFinalReport) {
-        // Start polling for final report
         if (!pollingIntervalRef.current) {
           pollingIntervalRef.current = setInterval(() => checkForFinalReport(
             jobId,
@@ -192,34 +313,21 @@ function App() {
           ), 5000);
         }
 
-        // Attempt reconnection if we haven't exceeded max attempts
         if (reconnectAttempts < maxReconnectAttempts) {
-          console.log(`Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+          console.log(`🔄 Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
           setTimeout(() => {
             setReconnectAttempts(prev => prev + 1);
             connectWebSocket(jobId);
           }, reconnectDelay);
         } else {
-          console.log("Max reconnection attempts reached");
-          setError("Connection lost. Checking for final report...");
-          // Keep polling for final report
+          addNotification("Connection lost. Checking for final report...", "warning");
         }
-      } else if (isResearching) {
-        setError("Research connection lost. Please try again.");
-        setIsResearching(false);
       }
     };
 
     ws.onerror = (event) => {
-      console.error("WebSocket error:", {
-        jobId,
-        error: event,
-        timestamp: new Date().toISOString(),
-        readyState: ws.readyState,
-        url: wsUrl
-      });
-      setError("WebSocket connection error");
-      setIsResearching(false);
+      console.error("❌ WebSocket error:", event);
+      addNotification("Connection error occurred", "error");
     };
 
     ws.onmessage = (event) => {
@@ -228,31 +336,32 @@ function App() {
       if (rawData.type === "status_update") {
         const statusData = rawData.data;
 
-        // Handle phase transitions
+        // Enhanced Phase Management
         if (statusData.result?.step) {
           const step = statusData.result.step;
+          const timestamp = Date.now();
+          
           if (step === "Search" && currentPhase !== 'search') {
             setCurrentPhase('search');
-            setIsSearchPhase(true);
-            setShouldShowQueries(true);
-            setIsQueriesExpanded(true);
+            setPhaseTimestamps(prev => ({ ...prev, search: timestamp }));
+            addNotification("🔍 Starting search phase", "info");
           } else if (step === "Enriching" && currentPhase !== 'enrichment') {
             setCurrentPhase('enrichment');
-            setIsSearchPhase(false);
-            setIsQueriesExpanded(false);
-            setIsEnrichmentExpanded(true);
+            setPhaseTimestamps(prev => ({ ...prev, enrichment: timestamp }));
+            addNotification("🔬 Beginning data enrichment", "info");
           } else if (step === "Briefing" && currentPhase !== 'briefing') {
             setCurrentPhase('briefing');
-            setIsEnrichmentExpanded(false);
-            setIsBriefingExpanded(true);
+            setPhaseTimestamps(prev => ({ ...prev, briefing: timestamp }));
+            addNotification("📊 Generating briefings", "info");
           }
         }
 
-        // Handle completion
+        // Handle Completion
         if (statusData.status === "completed") {
           setCurrentPhase('complete');
           setIsComplete(true);
           setIsResearching(false);
+          setPhaseTimestamps(prev => ({ ...prev, complete: Date.now() }));
           setStatus({
             step: "Complete",
             message: "Research completed successfully"
@@ -265,75 +374,53 @@ function App() {
           });
           setHasFinalReport(true);
           
-          // Clear polling interval if it exists
+          addNotification("🎉 Research completed successfully!", "success");
+          
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
             pollingIntervalRef.current = null;
           }
         }
 
-        // Set search phase when first query starts generating
-        if (statusData.status === "query_generating" && !isSearchPhase) {
-          setIsSearchPhase(true);
-          setShouldShowQueries(true);
-          setIsQueriesExpanded(true);
-        }
-        
-        // End search phase and start enrichment when moving to next step
-        if (statusData.result?.step && statusData.result.step !== "Search") {
-          if (isSearchPhase) {
-            setIsSearchPhase(false);
-            // Add delay before collapsing queries
-            setTimeout(() => {
-              setIsQueriesExpanded(false);
-            }, 1000);
-          }
-          
-          // Handle enrichment phase
-          if (statusData.result.step === "Enriching") {
-            setIsEnrichmentExpanded(true);
-            // Collapse enrichment section when complete
-            if (statusData.status === "enrichment_complete") {
-              setTimeout(() => {
-                setIsEnrichmentExpanded(false);
-              }, 1000);
-            }
-          }
-          
-          // Handle briefing phase
-          if (statusData.result.step === "Briefing") {
-            setIsBriefingExpanded(true);
-            if (statusData.status === "briefing_complete" && statusData.result?.category) {
-              // Update briefing status
-              setResearchState((prev) => {
-                const newBriefingStatus = {
-                  ...prev.briefingStatus,
-                  [statusData.result.category]: true
-                };
-                
-                // Check if all briefings are complete
-                const allBriefingsComplete = Object.values(newBriefingStatus).every(status => status);
-                
-                // Only collapse when all briefings are complete
-                if (allBriefingsComplete) {
-                  setTimeout(() => {
-                    setIsBriefingExpanded(false);
-                  }, 2000);
+        // Enhanced Query Handling
+        if (statusData.status === "query_generating") {
+          setResearchState((prev) => {
+            const key = `${statusData.result.category}-${statusData.result.query_number}`;
+            return {
+              ...prev,
+              streamingQueries: {
+                ...prev.streamingQueries,
+                [key]: {
+                  text: statusData.result.query,
+                  number: statusData.result.query_number,
+                  category: statusData.result.category,
+                  isComplete: false
                 }
-                
-                return {
-                  ...prev,
-                  briefingStatus: newBriefingStatus
-                };
-              });
-            }
-          }
+              }
+            };
+          });
+        } else if (statusData.status === "query_generated") {
+          setResearchState((prev) => {
+            const key = `${statusData.result.category}-${statusData.result.query_number}`;
+            const { [key]: _, ...remainingStreamingQueries } = prev.streamingQueries;
+            
+            return {
+              ...prev,
+              streamingQueries: remainingStreamingQueries,
+              queries: [
+                ...prev.queries,
+                {
+                  text: statusData.result.query,
+                  number: statusData.result.query_number,
+                  category: statusData.result.category,
+                },
+              ],
+            };
+          });
         }
 
-        // Handle enrichment-specific updates
+        // Enhanced Enrichment Handling
         if (statusData.result?.step === "Enriching") {
-          
-          // Initialize enrichment counts when starting a category
           if (statusData.status === "category_start") {
             const category = statusData.result.category as keyof EnrichmentCounts;
             if (category) {
@@ -348,9 +435,7 @@ function App() {
                 } as EnrichmentCounts
               }));
             }
-          }
-          // Update enriched count when a document is processed
-          else if (statusData.status === "extracted") {
+          } else if (statusData.status === "extracted") {
             const category = statusData.result.category as keyof EnrichmentCounts;
             if (category) {
               setResearchState((prev) => {
@@ -371,107 +456,10 @@ function App() {
               });
             }
           }
-          // Handle extraction errors
-          else if (statusData.status === "extraction_error") {
-            const category = statusData.result.category as keyof EnrichmentCounts;
-            if (category) {
-              setResearchState((prev) => {
-                const currentCounts = prev.enrichmentCounts?.[category];
-                if (currentCounts) {
-                  return {
-                    ...prev,
-                    enrichmentCounts: {
-                      ...prev.enrichmentCounts,
-                      [category]: {
-                        ...currentCounts,
-                        total: Math.max(0, currentCounts.total - 1)
-                      }
-                    } as EnrichmentCounts
-                  };
-                }
-                return prev;
-              });
-            }
-          }
-          // Update final counts when a category is complete
-          else if (statusData.status === "category_complete") {
-            const category = statusData.result.category as keyof EnrichmentCounts;
-            if (category) {
-              setResearchState((prev) => ({
-                ...prev,
-                enrichmentCounts: {
-                  ...prev.enrichmentCounts,
-                  [category]: {
-                    total: statusData.result.total || 0,
-                    enriched: statusData.result.enriched || 0
-                  }
-                } as EnrichmentCounts
-              }));
-            }
-          }
         }
 
-        // Handle curation-specific updates
-        if (statusData.result?.step === "Curation") {
-          
-          // Initialize doc counts when curation starts
-          if (statusData.status === "processing" && statusData.result.doc_counts) {
-            setResearchState((prev) => ({
-              ...prev,
-              docCounts: statusData.result.doc_counts as DocCounts
-            }));
-          }
-          // Update initial count for a category
-          else if (statusData.status === "category_start") {
-            const docType = statusData.result?.doc_type as keyof DocCounts;
-            if (docType) {
-              setResearchState((prev) => ({
-                ...prev,
-                docCounts: {
-                  ...prev.docCounts,
-                  [docType]: {
-                    initial: statusData.result.initial_count,
-                    kept: 0
-                  } as DocCount
-                } as DocCounts
-              }));
-            }
-          }
-          // Increment the kept count for a specific category
-          else if (statusData.status === "document_kept") {
-            const docType = statusData.result?.doc_type as keyof DocCounts;
-            setResearchState((prev) => {
-              if (docType && prev.docCounts?.[docType]) {
-                return {
-                  ...prev,
-                  docCounts: {
-                    ...prev.docCounts,
-                    [docType]: {
-                      initial: prev.docCounts[docType].initial,
-                      kept: prev.docCounts[docType].kept + 1
-                    }
-                  } as DocCounts
-                };
-              }
-              return prev;
-            });
-          }
-          // Update final doc counts when curation is complete
-          else if (statusData.status === "curation_complete" && statusData.result.doc_counts) {
-            setResearchState((prev) => ({
-              ...prev,
-              docCounts: statusData.result.doc_counts as DocCounts
-            }));
-          }
-        }
-
-        // Handle briefing status updates
-        if (statusData.status === "briefing_start") {
-          setStatus({
-            step: "Briefing",
-            message: statusData.message
-          });
-        } else if (statusData.status === "briefing_complete" && statusData.result?.category) {
+        // Enhanced Briefing Handling
+        if (statusData.status === "briefing_complete" && statusData.result?.category) {
           const category = statusData.result.category;
           setResearchState((prev) => ({
             ...prev,
@@ -480,47 +468,26 @@ function App() {
               [category]: true
             }
           }));
+          
+          addNotification(`✅ ${category} briefing completed`, "success");
         }
 
-        // Handle query updates
-        if (statusData.status === "query_generating") {
-          setResearchState((prev) => {
-            const key = `${statusData.result.category}-${statusData.result.query_number}`;
-            return {
-              ...prev,
-              streamingQueries: {
-                ...prev.streamingQueries,
-                [key]: {
-                  text: statusData.result.query,
-                  number: statusData.result.query_number,
-                  category: statusData.result.category,
-                  isComplete: false
-                }
-              }
-            };
+        // Enhanced Status Updates
+        if (statusData.status === "processing") {
+          setIsComplete(false);
+          setStatus({
+            step: statusData.result?.step || "Processing",
+            message: statusData.message || "Processing...",
           });
-        } else if (statusData.status === "query_generated") {
-          setResearchState((prev) => {
-            // Remove from streaming queries and add to completed queries
-            const key = `${statusData.result.category}-${statusData.result.query_number}`;
-            const { [key]: _, ...remainingStreamingQueries } = prev.streamingQueries;
-            
-            return {
-              ...prev,
-              streamingQueries: remainingStreamingQueries,
-              queries: [
-                ...prev.queries,
-                {
-                  text: statusData.result.query,
-                  number: statusData.result.query_number,
-                  category: statusData.result.category,
-                },
-              ],
-            };
-          });
+          scrollToStatus();
+        } else if (statusData.status === "failed" || statusData.status === "error") {
+          setError(statusData.error || statusData.message || "Research failed");
+          setIsResearching(false);
+          addNotification("❌ Research failed", "error");
         }
-        // Handle report streaming
-        else if (statusData.status === "report_chunk") {
+
+        // Report Streaming
+        if (statusData.status === "report_chunk") {
           setOutput((prev) => ({
             summary: "Generating report...",
             details: {
@@ -530,75 +497,26 @@ function App() {
             },
           }));
         }
-        // Handle other status updates
-        else if (statusData.status === "processing") {
-          setIsComplete(false);
-          // Only update status.step if we're not in curation or the new step is curation
-          if (!status?.step || status.step !== "Curation" || statusData.result?.step === "Curation") {
-            setStatus({
-              step: statusData.result?.step || "Processing",
-              message: statusData.message || "Processing...",
-            });
-          }
-          
-          // Reset briefing status when starting a new research
-          if (statusData.result?.step === "Briefing") {
-            setResearchState((prev) => ({
-              ...prev,
-              briefingStatus: {
-                company: false,
-                industry: false,
-                financial: false,
-                news: false
-              }
-            }));
-          }
-          
-          scrollToStatus();
-        } else if (
-          statusData.status === "failed" ||
-          statusData.status === "error" ||
-          statusData.status === "website_error"
-        ) {
-          setError(statusData.error || statusData.message || "Research failed");
-          if (statusData.status === "website_error" && statusData.result?.continue_research) {
-          } else {
-            setIsResearching(false);
-            setIsComplete(false);
-          }
-        }
       }
     };
 
     wsRef.current = ws;
-  };
+  }, [isResearching, hasFinalReport, reconnectAttempts, currentPhase, addNotification, scrollToStatus]);
 
-  useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
-
-  // Create a custom handler for the form that receives form data
+  // Enhanced Form Submission
   const handleFormSubmit = async (formData: {
     companyName: string;
     companyUrl: string;
     companyHq: string;
     companyIndustry: string;
   }) => {
-
-    // Clear any existing errors first
     setError(null);
 
-    // If research is complete, reset the UI first
     if (isComplete) {
       resetResearch();
-      await new Promise(resolve => setTimeout(resolve, 300)); // Wait for reset animation
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
-    // Reset states
     setHasFinalReport(false);
     setReconnectAttempts(0);
     if (pollingIntervalRef.current) {
@@ -608,19 +526,19 @@ function App() {
 
     setIsResearching(true);
     setOriginalCompanyName(formData.companyName);
-    setHasScrolledToStatus(false); // Reset scroll flag when starting new research
+    setHasScrolledToStatus(false);
+    setPhaseTimestamps({ start: Date.now() });
+
+    addNotification(`🚀 Starting research for ${formData.companyName}`, "info");
 
     try {
       const url = `${API_URL}/research`;
-
-      // Format the company URL if provided
       const formattedCompanyUrl = formData.companyUrl
         ? formData.companyUrl.startsWith('http://') || formData.companyUrl.startsWith('https://')
           ? formData.companyUrl
           : `https://${formData.companyUrl}`
         : undefined;
 
-      // Log the request details
       const requestData = {
         company: formData.companyName,
         company_url: formattedCompanyUrl,
@@ -637,46 +555,35 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestData),
-      }).catch((error) => {
-        console.error("Fetch error:", error);
-        throw error;
-      });
-
-      console.log("Response received:", {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText,
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log("Error response:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (data.job_id) {
-        console.log("Connecting WebSocket with job_id:", data.job_id);
         connectWebSocket(data.job_id);
       } else {
         throw new Error("No job ID received");
       }
     } catch (err) {
-      console.log("Caught error:", err);
-      setError(err instanceof Error ? err.message : "Failed to start research");
+      const errorMessage = err instanceof Error ? err.message : "Failed to start research";
+      setError(errorMessage);
       setIsResearching(false);
+      addNotification(`❌ ${errorMessage}`, "error");
     }
   };
 
-  // Add new function to handle PDF generation
+  // Enhanced PDF Generation
   const handleGeneratePdf = async () => {
     if (!output || isGeneratingPdf) return;
     
     setIsGeneratingPdf(true);
+    addNotification("📄 Generating PDF report...", "info");
+    
     try {
-      console.log("Generating PDF with company name:", originalCompanyName);
       const response = await fetch(`${API_URL}/generate-pdf`, {
         method: 'POST',
         headers: {
@@ -684,7 +591,7 @@ function App() {
         },
         body: JSON.stringify({
           report_content: output.details.report,
-          company_name: originalCompanyName || output.details.report
+          company_name: originalCompanyName || 'research_report'
         }),
       });
       
@@ -692,127 +599,134 @@ function App() {
         throw new Error('Failed to generate PDF');
       }
       
-      // Get the blob from the response
       const blob = await response.blob();
-      
-      // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
-      
-      // Create a temporary link element
       const link = document.createElement('a');
       link.href = url;
       link.download = `${originalCompanyName || 'research_report'}.pdf`;
       
-      // Append to body, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up the URL
       window.URL.revokeObjectURL(url);
+      addNotification("✅ PDF downloaded successfully!", "success");
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      setError(error instanceof Error ? error.message : 'Failed to generate PDF');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF';
+      setError(errorMessage);
+      addNotification(`❌ ${errorMessage}`, "error");
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
-  // Add new function to handle copying to clipboard
+  // Enhanced Clipboard Function
   const handleCopyToClipboard = async () => {
     if (!output?.details?.report) return;
     
     try {
       await navigator.clipboard.writeText(output.details.report);
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+      addNotification("📋 Report copied to clipboard!", "success");
+      setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
-      setError('Failed to copy to clipboard');
+      addNotification("❌ Failed to copy to clipboard", "error");
     }
   };
 
-  // Add document count display component
+  // Toggle Functions
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
-  // Add BriefingProgress component
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  // Add EnrichmentProgress component
-
-  // Function to render progress components in order
+  // Enhanced Progress Component Renderer
   const renderProgressComponents = () => {
     const components = [];
 
-    // Research Report (always at the top when available)
+    // Research Report (Priority Display)
     if (output && output.details) {
       components.push(
-        <ResearchReport
-          key="report"
-          output={{
-            summary: output.summary,
-            details: {
-              report: output.details.report || ''
-            }
-          }}
-          isResetting={isResetting}
-          glassStyle={glassStyle}
-          fadeInAnimation={fadeInAnimation}
-          loaderColor={loaderColor}
-          isGeneratingPdf={isGeneratingPdf}
-          isCopied={isCopied}
-          onCopyToClipboard={handleCopyToClipboard}
-          onGeneratePdf={handleGeneratePdf}
-        />
+        <div key="report" className={`${animations.fadeIn} transition-all duration-500`}>
+          <ResearchReport
+            output={{
+              summary: output.summary,
+              details: {
+                report: output.details.report || ''
+              }
+            }}
+            isResetting={isResetting}
+            glassStyle={modernTheme.glass}
+            fadeInAnimation={animations}
+            loaderColor={loaderColor}
+            isGeneratingPdf={isGeneratingPdf}
+            isCopied={isCopied}
+            onCopyToClipboard={handleCopyToClipboard}
+            onGeneratePdf={handleGeneratePdf}
+          />
+        </div>
       );
     }
 
-    // Current phase component
+    // Dynamic Phase Components
     if (currentPhase === 'briefing' || (currentPhase === 'complete' && researchState.briefingStatus)) {
       components.push(
-        <ResearchBriefings
-          key="briefing"
-          briefingStatus={researchState.briefingStatus}
-          isExpanded={isBriefingExpanded}
-          onToggleExpand={() => setIsBriefingExpanded(!isBriefingExpanded)}
-          isResetting={isResetting}
-        />
+        <div key="briefing" className={`${animations.slideUp} transition-all duration-500`}>
+          <ResearchBriefings
+            briefingStatus={researchState.briefingStatus}
+            isExpanded={expandedSections.briefings}
+            onToggleExpand={() => toggleSection('briefings')}
+            isResetting={isResetting}
+          />
+        </div>
       );
     }
 
     if (currentPhase === 'enrichment' || currentPhase === 'briefing' || currentPhase === 'complete') {
       components.push(
-        <CurationExtraction
-          key="enrichment"
-          enrichmentCounts={researchState.enrichmentCounts}
-          isExpanded={isEnrichmentExpanded}
-          onToggleExpand={() => setIsEnrichmentExpanded(!isEnrichmentExpanded)}
-          isResetting={isResetting}
-          loaderColor={loaderColor}
-        />
+        <div key="curation" className={`${animations.slideUp} transition-all duration-500`}>
+          <CurationExtraction
+            enrichmentCounts={researchState.enrichmentCounts}
+            isExpanded={expandedSections.curation}
+            onToggleExpand={() => toggleSection('curation')}
+            isResetting={isResetting}
+            loaderColor={loaderColor}
+          />
+        </div>
       );
     }
 
-    // Queries are always at the bottom when visible
-    if (shouldShowQueries && (researchState.queries.length > 0 || Object.keys(researchState.streamingQueries).length > 0)) {
+    if (researchState.queries.length > 0 || Object.keys(researchState.streamingQueries).length > 0) {
       components.push(
-        <ResearchQueries
-          key="queries"
-          queries={researchState.queries}
-          streamingQueries={researchState.streamingQueries}
-          isExpanded={isQueriesExpanded}
-          onToggleExpand={() => setIsQueriesExpanded(!isQueriesExpanded)}
-          isResetting={isResetting}
-          glassStyle={glassStyle.base}
-        />
+        <div key="queries" className={`${animations.slideUp} transition-all duration-500`}>
+          <ResearchQueries
+            queries={researchState.queries}
+            streamingQueries={researchState.streamingQueries}
+            isExpanded={expandedSections.queries}
+            onToggleExpand={() => toggleSection('queries')}
+            isResetting={isResetting}
+            glassStyle={modernTheme.glass.panel}
+          />
+        </div>
       );
     }
 
     return components;
   };
 
-  // Add cleanup for polling interval
+  // Cleanup
   useEffect(() => {
     return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
@@ -820,46 +734,319 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-gray-50 to-white p-8 relative">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(70,139,255,0.35)_1px,transparent_0)] bg-[length:24px_24px] bg-center"></div>
-      <div className="max-w-5xl mx-auto space-y-8 relative">
-        {/* Header Component */}
-        <Header glassStyle={glassStyle.card} />
+    <div className={`min-h-screen ${modernTheme.background.primary} relative overflow-hidden transition-all duration-500`}>
+      {/* Enhanced Background Effects */}
+      <div className="absolute inset-0">
+        {/* Particle System */}
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="absolute w-1 h-1 bg-blue-500 rounded-full pointer-events-none"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              opacity: particle.opacity,
+              transition: 'opacity 0.5s ease-in-out'
+            }}
+          />
+        ))}
+        
+        {/* Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-200/20 via-blue-300/20 to-blue-400/20"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0%,transparent_70%)]"></div>
+        
+      {/* Floating Control Panel */}
+      <div className="fixed top-6 right-6 z-50 flex flex-col space-y-3">
+        {/* Settings Panel */}
+        <div className={`${modernTheme.glass.card} rounded-2xl p-3 transition-all duration-300 ${
+          expandedSections.settings ? 'w-64' : 'w-auto'
+        }`}>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => toggleSection('settings')}
+              className="p-2 hover:bg-blue-100/50 rounded-lg transition-colors"
+            >
+              <Settings className="w-5 h-5 text-blue-600" />
+            </button>
+            
+            {expandedSections.settings && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+                  className="p-2 hover:bg-blue-100/50 rounded-lg transition-colors"
+                >
+                  {isSoundEnabled ? <Volume2 className="w-4 h-4 text-green-400" /> : <VolumeX className="w-4 h-4 text-red-400" />}
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-2 hover:bg-blue-100/50 rounded-lg transition-colors"
+                >
+                  {isFullscreen ? <Minimize2 className="w-4 h-4 text-blue-400" /> : <Maximize2 className="w-4 h-4 text-blue-400" />}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {expandedSections.settings && (
+            <div className="mt-3 space-y-2 border-t border-blue-200/50 pt-3">
+              <div className="text-xs text-blue-600/70">Research Progress</div>
+              <div className="w-full bg-blue-100/50 rounded-full h-2">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000"
+                  style={{ width: `${researchProgress}%` }}
+                />
+              </div>
+              <div className="text-xs text-blue-600/50">{Math.round(researchProgress)}% Complete</div>
+            </div>
+          )}
+        </div>
 
-        {/* Form Section */}
-        <ResearchForm 
-          onSubmit={handleFormSubmit}
-          isResearching={isResearching}
-          glassStyle={glassStyle}
-          loaderColor={loaderColor}
-        />
-
-        {/* Error Message */}
-        {error && (
-          <div 
-            className={`${glassStyle.card} border-[#FE363B]/30 bg-[#FE363B]/10 ${fadeInAnimation.fadeIn} ${isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'} font-['DM_Sans']`}
+        {/* Reset Button */}
+        {(isResearching || isComplete) && (
+          <button
+            onClick={resetResearch}
+            className={`${modernTheme.glass.card} rounded-xl p-3 hover:bg-red-500/20 transition-all group`}
           >
-            <p className="text-[#FE363B]">{error}</p>
+            <RefreshCw className="w-5 h-5 text-blue-600 group-hover:text-red-400 transition-colors" />
+          </button>
+        )}
+      </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className={`fixed bottom-6 right-6 z-40 ${modernTheme.glass.card} rounded-full p-4 hover:bg-blue-100/50 transition-all transform hover:scale-110 ${animations.scaleIn}`}
+        >
+          <ArrowUp className="w-6 h-6 text-blue-600" />
+        </button>
+      )}
+
+      {/* Notification Toast Container */}
+      {/* <div className="fixed top-6 left-6 z-50 space-y-2 max-w-sm">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`${modernTheme.glass.card} rounded-xl p-4 transition-all duration-300 transform ${animations.slideDown} ${
+              notification.type === 'error' ? 'border-red-400/50 bg-red-500/10' :
+              notification.type === 'success' ? 'border-green-400/50 bg-green-500/10' :
+              notification.type === 'warning' ? 'border-yellow-400/50 bg-yellow-500/10' :
+              'border-blue-400/50 bg-blue-500/10'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`w-2 h-2 rounded-full ${
+                notification.type === 'error' ? 'bg-red-400' :
+                notification.type === 'success' ? 'bg-green-400' :
+                notification.type === 'warning' ? 'bg-yellow-400' :
+                'bg-blue-400'
+              }`} />
+              <p className="text-gray-700 text-sm font-medium">{notification.message}</p>
+            </div>
+          </div>
+        ))}
+      </div> */}
+      {/* Close the absolute inset-0 background div */}
+      </div>
+
+      {/* Main Content Container */}
+      <div className="relative z-10 container mx-auto px-6 py-8">
+        {/* Enhanced Header */}
+        <div className={`${animations.fadeIn} mb-12`}>
+          <Header glassStyle={modernTheme.glass.card} />
+        </div>
+
+        {/* Research Analytics Panel */}
+        {isResearching && (
+          <div className={`${modernTheme.glass.panel} rounded-3xl p-6 mb-8 ${animations.slideUp}`}>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Current Phase */}
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
+                  {currentPhase === 'search' && <Target className="w-8 h-8 text-white" />}
+                  {currentPhase === 'enrichment' && <Zap className="w-8 h-8 text-white" />}
+                  {currentPhase === 'briefing' && <Brain className="w-8 h-8 text-white" />}
+                  {currentPhase === 'complete' && <Sparkles className="w-8 h-8 text-white" />}
+                </div>
+                <h3 className="text-gray-800 font-semibold text-lg capitalize">{currentPhase || 'Initializing'}</h3>
+                <p className="text-gray-500 text-sm">Current Phase</p>
+              </div>
+
+              {/* Queries Generated */}
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {researchState.queries.length + Object.keys(researchState.streamingQueries).length}
+                </div>
+                <h3 className="text-gray-800 font-semibold">Queries</h3>
+                <p className="text-gray-500 text-sm">Generated</p>
+              </div>
+
+              {/* Documents Processed */}
+              <div className="text-center">
+                <div className="text-3xl font-bold text-emerald-400 mb-2">
+                  {researchState.enrichmentCounts ? 
+                    Object.values(researchState.enrichmentCounts).reduce((acc, curr) => acc + curr.enriched, 0) : 0}
+                </div>
+                <h3 className="text-gray-800 font-semibold">Documents</h3>
+                <p className="text-gray-500 text-sm">Processed</p>
+              </div>
+
+              {/* Time Elapsed */}
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-500 mb-2">
+                  {phaseTimestamps.start ? 
+                    Math.floor((Date.now() - phaseTimestamps.start) / 1000) : 0}s
+                </div>
+                <h3 className="text-gray-800 font-semibold">Elapsed</h3>
+                <p className="text-gray-500 text-sm">Time</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-800 font-medium">Overall Progress</span>
+                <span className="text-gray-600">{Math.round(researchProgress)}%</span>
+              </div>
+              <div className="w-full bg-blue-100/50 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 rounded-full transition-all duration-1000 relative"
+                  style={{ width: `${researchProgress}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Status Box */}
-        <ResearchStatus
-          status={status}
-          error={error}
-          isComplete={isComplete}
-          currentPhase={currentPhase}
-          isResetting={isResetting}
-          glassStyle={glassStyle}
-          loaderColor={loaderColor}
-          statusRef={statusRef}
-        />
+        {/* Research Form */}
+        <div className={`${animations.fadeIn} mb-8`}>
+          <ResearchForm 
+            onSubmit={handleFormSubmit}
+            isResearching={isResearching}
+            glassStyle={modernTheme.glass}
+            loaderColor={loaderColor}
+          />
+        </div>
 
-        {/* Progress Components Container */}
-        <div className="space-y-12 transition-all duration-500 ease-in-out">
+        {/* Error Display */}
+        {error && (
+          <div className={`${modernTheme.glass.card} border-2 border-red-400/50 bg-red-500/10 rounded-2xl p-6 mb-8 ${animations.slideDown} ${
+            isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'
+          } transition-all duration-500`}>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+                <span className="text-red-400 text-xl">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-red-400 font-semibold">Research Error</h3>
+                <p className="text-red-300">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Status Display */}
+        <div className={animations.fadeIn}>
+          <ResearchStatus
+            status={status}
+            error={error}
+            isComplete={isComplete}
+            currentPhase={currentPhase}
+            isResetting={isResetting}
+            glassStyle={modernTheme.glass}
+            loaderColor={loaderColor}
+            statusRef={statusRef}
+          />
+        </div>
+
+        {/* Dynamic Progress Components */}
+        <div className="space-y-8 mt-8">
           {renderProgressComponents()}
         </div>
+
+        {/* Research Summary Card */}
+        {isComplete && phaseTimestamps.start && (
+          <div className={`${modernTheme.glass.panel} rounded-3xl p-8 mt-8 ${animations.fadeIn}`}>
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              
+              <h2 className="text-3xl font-bold text-gray-800 mb-4">Research Complete! 🎉</h2>
+              <p className="text-gray-600 text-lg mb-6">
+                Successfully analyzed <span className="text-emerald-400 font-semibold">{originalCompanyName}</span>
+              </p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {Math.floor((Date.now() - phaseTimestamps.start) / 1000)}s
+                  </div>
+                  <div className="text-gray-500 text-sm">Total Time</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-500">
+                    {researchState.queries.length}
+                  </div>
+                  <div className="text-gray-500 text-sm">Queries</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-400">
+                    {Object.values(researchState.briefingStatus).filter(Boolean).length}
+                  </div>
+                  <div className="text-gray-500 text-sm">Briefings</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-cyan-400">
+                    {researchState.enrichmentCounts ? 
+                      Object.values(researchState.enrichmentCounts).reduce((acc, curr) => acc + curr.enriched, 0) : 0}
+                  </div>
+                  <div className="text-gray-500 text-sm">Documents</div>
+                </div>
+              </div>
+              
+              <button
+                onClick={resetResearch}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105"
+              >
+                Start New Research
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Floating Phase Indicator */}
+      {isResearching && currentPhase && (
+        <div className="fixed bottom-6 left-6 z-40">
+          <div className={`${modernTheme.glass.card} rounded-2xl p-4 ${animations.slideUp}`}>
+            <div className="flex items-center space-x-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                currentPhase === 'search' ? 'bg-blue-500/20' :
+                currentPhase === 'enrichment' ? 'bg-emerald-500/20' :
+                currentPhase === 'briefing' ? 'bg-purple-500/20' :
+                'bg-pink-500/20'
+              }`}>
+                {currentPhase === 'search' && <Target className="w-4 h-4 text-blue-400" />}
+                {currentPhase === 'enrichment' && <Zap className="w-4 h-4 text-emerald-400" />}
+                {currentPhase === 'briefing' && <Brain className="w-4 h-4 text-purple-400" />}
+                {currentPhase === 'complete' && <Sparkles className="w-4 h-4 text-pink-400" />}
+              </div>
+              <div>
+                <div className="text-gray-800 font-medium text-sm capitalize">{currentPhase} Phase</div>
+                <div className="text-gray-500 text-xs">
+                  {currentPhase === 'search' && 'Generating research queries'}
+                  {currentPhase === 'enrichment' && 'Processing documents'}
+                  {currentPhase === 'briefing' && 'Creating briefings'}
+                  {currentPhase === 'complete' && 'Analysis complete'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
