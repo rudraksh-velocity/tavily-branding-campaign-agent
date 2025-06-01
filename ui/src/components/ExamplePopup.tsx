@@ -89,9 +89,9 @@ const ExamplePopup: React.FC<ExamplePopupProps> = ({
   return (
     <div 
       ref={exampleRef}
-      className={`absolute -top-14 left-8 ${glassStyle.card} bg-white/90 shadow-lg border-blue-200 cursor-pointer z-10 
+      className={`absolute -top-14 left-8 ${glassStyle.card} bg-white/95 backdrop-blur-sm shadow-lg border-blue-200/70 cursor-pointer z-10 
                  flex items-center px-3 py-2 space-x-2 transform transition-all duration-300 
-                 hover:shadow-xl hover:bg-white/95 hover:-translate-y-1 hover:border-blue-300 group`}
+                 hover:shadow-xl hover:bg-white hover:-translate-y-1 hover:border-blue-400/70 group`}
       onClick={() => onExampleSelect(EXAMPLE_COMPANIES[selectedExample])}
       style={{
         borderTopLeftRadius: '12px',
@@ -100,7 +100,7 @@ const ExamplePopup: React.FC<ExamplePopupProps> = ({
         borderBottomLeftRadius: '4px',
       }}
     >
-      <Sparkles className="h-4 w-4 text-blue-500 group-hover:text-blue-600 animate-pulse group-hover:animate-none group-hover:scale-110 transition-all" />
+      <Sparkles className="h-4 w-4 text-blue-600 group-hover:text-blue-700 animate-pulse group-hover:animate-none group-hover:scale-110 transition-all" />
       <div>
         <span className="text-sm font-medium text-gray-700 group-hover:text-gray-800 transition-colors">Try an example: </span>
         <span 
@@ -114,7 +114,7 @@ const ExamplePopup: React.FC<ExamplePopupProps> = ({
           {EXAMPLE_COMPANIES[selectedExample].name}
         </span>
       </div>
-      <ArrowRight className="h-3.5 w-3.5 text-blue-500 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+      <ArrowRight className="h-3.5 w-3.5 text-blue-600 group-hover:text-blue-700 group-hover:translate-x-0.5 transition-all" />
     </div>
   );
 };

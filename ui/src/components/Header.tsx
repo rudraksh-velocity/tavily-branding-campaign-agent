@@ -5,7 +5,7 @@ interface HeaderProps {
   glassStyle: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ glassStyle }) => {
+const Header: React.FC<HeaderProps> = ({ }) => {
   return (
     <div className="relative mb-16">
       <div className="text-center pt-4">

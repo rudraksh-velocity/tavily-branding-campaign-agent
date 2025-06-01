@@ -161,9 +161,7 @@ if [[ $start_servers =~ ^[Yy]$ ]]; then
     
     # Wait a moment for backend to start
     sleep 2
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    
     # Start frontend server
     echo -e "\n${GREEN}Starting frontend server...${NC}"
     cd ui
